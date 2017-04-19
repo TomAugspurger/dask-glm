@@ -1,16 +1,20 @@
 from __future__ import absolute_import, division, print_function
 
+import logging
+
 from dask import delayed, persist, compute
 import functools
 import numpy as np
 import dask.array as da
 from scipy.optimize import fmin_l_bfgs_b
 
-
 from dask_glm.utils import dot, exp, log1p
 from dask_glm.families import Logistic
 from dask_glm.regularizers import L1
 
+
+logging.getLogger(__name__).addHandler(logging.NullHandler())
+logger = logging.getLogger(__name__)
 
 def compute_stepsize_dask(beta, step, Xbeta, Xstep, y, curr_val,
                           family=Logistic, stepSize=1.0,
@@ -82,14 +86,14 @@ def gradient_descent(X, y, max_steps=100, tol=1e-14, family=Logistic):
         Xbeta = Xbeta - stepSize * Xgradient
 
         if stepSize == 0:
-            print('No more progress')
+            logger.log('No more progress')
             break
 
         df = lf - func
         df /= max(func, lf)
 
         if df < tol:
-            print('Converged')
+            logging.info('Converged')
             break
         stepSize *= stepGrowth
         backtrackMult = nextBacktrackMult
@@ -194,7 +198,7 @@ def admm(X, y, reg=L1, lamduh=0.1, rho=1, over_relax=1,
             reltol * np.linalg.norm(rho * u)
 
         if primal_res < eps_pri and dual_res < eps_dual:
-            print("Converged!", k)
+            logging.info("Converged!", k)
             break
 
     return z
@@ -271,7 +275,7 @@ def bfgs(X, y, max_steps=500, tol=1e-14, family=Logistic):
         Xbeta = Xbeta - stepSize * Xstep
 
         if stepSize == 0:
-            print('No more progress')
+            logging.info('No more progress')
             break
 
         # necessary for gradient computation
@@ -282,13 +286,13 @@ def bfgs(X, y, max_steps=500, tol=1e-14, family=Logistic):
         stepSize *= stepGrowth
 
         if stepSize == 0:
-            print('No more progress')
+            logging.info('No more progress')
             break
 
         df = lf - func
         df /= max(func, lf)
         if df < tol:
-            print('Converged')
+            logging.info('Converged')
             break
 
     return beta
@@ -308,8 +312,8 @@ def proximal_grad(X, y, reg=L1, lamduh=0.1, family=Logistic,
     beta = np.zeros(p)
 
     if verbose:
-        print('#       -f        |df/f|    |dx/x|    step')
-        print('----------------------------------------------')
+        logging.info('#       -f        |df/f|    |dx/x|    step')
+        logging.info('----------------------------------------------')
 
     for k in range(max_steps):
         # Compute the gradient
@@ -345,14 +349,14 @@ def proximal_grad(X, y, reg=L1, lamduh=0.1, family=Logistic,
                     break
             stepSize *= backtrackMult
         if stepSize == 0:
-            print('No more progress')
+            logging.info('No more progress')
             break
         df /= max(func, lf)
         db = 0
         if verbose:
-            print('%2d  %.6e %9.2e  %.2e  %.1e' % (k + 1, func, df, db, stepSize))
+            logging.info('%2d  %.6e %9.2e  %.2e  %.1e' % (k + 1, func, df, db, stepSize))
         if df < tol:
-            print('Converged')
+            logging.info('Converged')
             break
         stepSize *= stepGrowth
         backtrackMult = nextBacktrackMult
