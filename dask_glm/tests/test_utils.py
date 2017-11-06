@@ -70,6 +70,24 @@ def test_add_intercept_dask():
     assert_eq(result, expected)
 
 
+def test_add_intercept_dask_dataframe():
+    dd = pytest.importorskip("dask.dataframe")
+    from dask.dataframe.utils import assert_eq
+    import pandas as pd
+
+    X = dd.from_pandas(pd.DataFrame({"A": [1, 2, 3]}), npartitions=2)
+    result = utils.add_intercept(X)
+    expected = dd.from_pandas(pd.DataFrame({"intercept": [1, 1, 1],
+                                            "A": [1, 2, 3]},
+                                           columns=['intercept', 'A']),
+                              npartitions=2)
+    assert_eq(result, expected)
+
+    df = dd.from_pandas(pd.DataFrame({"intercept": [1, 2, 3]}), npartitions=2)
+    with pytest.raises(ValueError):
+        utils.add_intercept(df)
+
+
 def test_sparse():
     sparse = pytest.importorskip('sparse')
     from sparse.utils import assert_eq

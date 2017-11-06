@@ -8,6 +8,12 @@ import numpy as np
 from functools import wraps
 from multipledispatch import dispatch
 
+try:
+    from dask.dataframe import DataFrame
+    _HAS_DD = True
+except ImportError:
+    _HAS_DD = False
+
 
 def normalize(algo):
     @wraps(algo)
@@ -152,6 +158,15 @@ def add_intercept(X):
     # Is this OK / correct?
     X_i = da.concatenate([X, o], axis=1).rechunk((j, (k[0] + 1,)))
     return X_i
+
+
+if _HAS_DD:
+    @dispatch(DataFrame)
+    def add_intercept(X):
+        columns = X.columns
+        if 'intercept' in columns:
+            raise ValueError("'intercept' column already in 'X'")
+        return X.assign(intercept=1)[['intercept'] + list(columns)]
 
 
 def make_y(X, beta=np.array([1.5, -3]), chunks=2):
